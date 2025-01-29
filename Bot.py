@@ -1,109 +1,117 @@
-import argparse
-import asyncio
-import chess
-import websockets
 import requests
 import json
-import sys
-from enum import Enum
+import time
+from datetime import datetime
+import chess
+import chess.engine
+import chess.pgn
 
-API_TOKEN = "lip_RCclZGMsZMhtLWPi4JCZ"
-COMMANDS = {
-    'challenge': 'Challenge a player: challenge USERNAME [TIME] [COLOR] [RATED]',
-    'matchmaking': 'Start automated matchmaking',
-    'quit': 'Exit the bot',
-    'help': 'Show command list',
-    'rechallenge': 'Rematch last opponent',
-    'stop': 'Stop matchmaking'
-}
+# Configuration
+LICHESS_API_URL = "https://lichess.org/api"
+API_TOKEN = 'your_lichess_api_token'
+BOT_USERNAME = 'your_bot_username'
+MEMORY_FILE = 'game_memory.json'
 
-class ChallengeColor(Enum):
-    WHITE = "white"
-    BLACK = "black"
-    RANDOM = "random"
+# Initialize memory storage
+try:
+    with open(MEMORY_FILE, 'r') as f:
+        game_memory = json.load(f)
+except FileNotFoundError:
+    game_memory = {}
 
-class BotInterface:
-    def __init__(self):
-        self.matchmaking_active = False
-        self.last_challenge = None
+def get_headers():
+    return {
+        'Authorization': f'Bearer {API_TOKEN}'
+    }
 
-    async def command_loop(self):
-        while True:
-            cmd = await asyncio.to_thread(input, "bot> ")
-            await self.handle_command(cmd.split())
+def get_best_move(fen):
+    response = requests.post(
+        f"{LICHESS_API_URL}/eval",
+        headers=get_headers(),
+        data=json.dumps({'fen': fen})
+    )
+    if response.status_code == 200:
+        return response.json().get('move')
+    else:
+        print("Error fetching best move:", response.text)
+        return None
 
-    async def handle_command(self, parts):
-        match parts[0].lower():
-            case 'challenge':
-                self.handle_challenge(parts[1:])
-            case 'matchmaking':
-                self.start_matchmaking()
-            case 'rechallenge':
-                self.handle_rechallenge()
-            case 'stop':
-                self.stop_matchmaking()
-            case 'help':
-                self.show_help()
-            case 'quit':
-                sys.exit(0)
-            case _:
-                print("Unknown command")
+def play_game(game_id, opponent):
+    url = f"{LICHESS_API_URL}/bot/game/stream/{game_id}"
+    stream = requests.get(url, headers=get_headers(), stream=True)
+    board = chess.Board()
+    
+    for line in stream.iter_lines():
+        if line:
+            data = json.loads(line.decode('utf-8'))
+            if data['type'] == 'gameFull':
+                moves = data['state']['moves'].split()
+            elif data['type'] == 'gameState':
+                moves = data['moves'].split()
+            
+            for move in moves:
+                board.push_san(move) if move else None
+            
+            if data['type'] == 'gameState' and not data['isMyTurn']:
+                fen = board.fen()
+                best_move = get_best_move(fen)
+                if best_move:
+                    move_url = f"{LICHESS_API_URL}/bot/game/{game_id}/move/{best_move}"
+                    requests.post(move_url, headers=get_headers())
+                    board.push_uci(best_move)
+                    
+                    # Store game state in memory
+                    if opponent not in game_memory:
+                        game_memory[opponent] = []
+                    game_memory[opponent].append({
+                        'fen': fen,
+                        'move': best_move,
+                        'timestamp': datetime.now().isoformat()
+                    })
+                    with open(MEMORY_FILE, 'w') as f:
+                        json.dump(game_memory, f)
 
-    def handle_challenge(self, args):
+def challenge_opponent(username, clock_limit, increment):
+    url = f"{LICHESS_API_URL}/challenge/{username}"
+    payload = {
+        'clock.limit': clock_limit,
+        'clock.increment': increment,
+        'rated': 'true',
+        'color': 'random'
+    }
+    response = requests.post(url, headers=get_headers(), data=payload)
+    if response.status_code == 200:
+        game_id = response.json()['challenge']['id']
+        play_game(game_id, username)
+    else:
+        print("Error challenging opponent:", response.text)
+
+def analyze_games():
+    for opponent, games in game_memory.items():
+        for game in games:
+            fen = game['fen']
+            best_move = get_best_move(fen)
+            if best_move and best_move != game['move']:
+                print(f"Learning from {opponent}: Correcting move from {game['move']} to {best_move}")
+
+def main():
+    while True:
         try:
-            username = args[0]
-            time_control = args[1] if len(args)>1 else "3+2"
-            color = ChallengeColor(args[2].lower()) if len(args)>2 else ChallengeColor.RANDOM
-            rated = args[3].lower() == "rated" if len(args)>3 else True
+            # Fetch ongoing games
+            ongoing_games = requests.get(f"{LICHESS_API_URL}/account/playing", headers=get_headers()).json()
+            for game in ongoing_games.get('nowPlaying', []):
+                play_game(game['gameId'], game['opponent']['username'])
             
-            print(f"Challenging {username} ({time_control}, {color.value})")
-            # Add challenge logic here
-            
+            # Analyze stored games periodically
+            analyze_games()
+
+            # Example: Challenge random players every 10 seconds (for demonstration purposes)
+            # Uncomment and customize as needed
+            # challenge_opponent('random_username', 60, 1)  # Example: 60 sec limit, 1 sec increment
+            time.sleep(10)
         except Exception as e:
-            print(f"Invalid command: {e}")
-
-    def start_matchmaking(self):
-        self.matchmaking_active = True
-        print("Matchmaking started...")
-
-    def stop_matchmaking(self):
-        self.matchmaking_active = False
-        print("Matchmaking stopped")
-
-    def handle_rechallenge(self):
-        if self.last_challenge:
-            print(f"Rechallenging {self.last_challenge}")
-        else:
-            print("No previous challenge")
-
-    def show_help(self):
-        print("Available commands:")
-        for cmd, desc in COMMANDS.items():
-            print(f"{cmd:12} {desc}")
-
-async def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--matchmaking', '-m', action='store_true', help='Start in matchmaking mode')
-    parser.add_argument('--debug', '-d', action='store_true', help='Enable debug output')
-    args = parser.parse_args()
-
-    interface = BotInterface()
-    asyncio.create_task(interface.command_loop())
-
-    async with websockets.connect("wss://lichess.org/api/v2/bot") as ws:
-        await ws.send(f"Bearer {API_TOKEN}")
-        print("Bot connected to Lichess")
-        if args.matchmaking:
-            interface.start_matchmaking()
-
-        while True:
-            msg = json.loads(await ws.recv())
-            if msg.get("type") == "gameState":
-                # Add game handling logic
-                pass
-            elif msg.get("type") == "challenge":
-                requests.post(f"https://lichess.org/api/challenge/{msg['challenge']['id']}/accept", 
-                            headers={"Authorization": f"Bearer {API_TOKEN}"})
+            print("Error in main loop:", e)
+            time.sleep(10)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
