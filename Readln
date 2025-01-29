@@ -1,0 +1,14 @@
+**Key steps:**
+1. Get a bot token: https://lichess.org/login?referrer=/account/oauth/token/create (check "bot:play" scope)
+2. `pip install websockets requests`
+3. Replace `API_TOKEN` with your token
+4. Run: `python bot.py`
+
+This will:
+- Verify token permissions
+- Accept all challenges automatically
+- Play using Lichess's cloud analysis
+- Work with any valid bot token
+- Follow Lichess rate limits
+
+**Note:** Actual bot accounts get special rate limits. Using normal accounts as bots violates Lichess ToS.
