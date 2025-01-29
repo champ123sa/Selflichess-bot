@@ -1,20 +1,17 @@
-Key UI features added :
-1. Interactive command prompt with tab completion
-2. Matchmaking control system
-3. Challenge creation interface
-4. Rechallenge functionality
-5. Help system with command descriptions
 
-Run with:
-```bash
-python bot.py --matchmaking  # Start with auto-matchmaking
-```
-
-Use commands like:
-- `challenge StockfishBot 5+0 white rated`
-- `matchmaking`
-- `rechallenge`
-- `stop`
-- `quit`
-
-The interface supports both interactive use and automated matchmaking through command-line flags .
+2025-01-29 06:33:10,971 - DEBUG - Starting new HTTPS connection (1): lichess.org:443
+2025-01-29 06:33:11,407 - DEBUG - https://lichess.org:443 "GET /api/account/playing HTTP/1.1" 200 None
+2025-01-29 06:33:11,408 - INFO - Ongoing games: {'nowPlaying': [{'fullId': 't1RSgBCTqWfJ', 'gameId': 't1RSgBCT', 'fen': 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', 'color': 'white', 'lastMove': '', 'source': 'ai', 'status': {'id': 20, 'name': 'started'}, 'variant': {'key': 'standard', 'name': 'Standard'}, 'speed': 'bullet', 'perf': 'bullet', 'rated': False, 'hasMoved': False, 'opponent': {'id': None, 'username': 'Stockfish level 1', 'ai': 1}, 'isMyTurn': True, 'secondsLeft': 90}]}
+2025-01-29 06:33:11,408 - INFO - Starting game t1RSgBCT against Stockfish level 1
+2025-01-29 06:33:11,409 - DEBUG - Starting new HTTPS connection (1): lichess.org:443
+2025-01-29 06:33:11,857 - DEBUG - https://lichess.org:443 "GET /api/bot/game/stream/t1RSgBCT HTTP/1.1" 200 None
+2025-01-29 06:33:11,858 - DEBUG - Received data: {'id': 't1RSgBCT', 'variant': {'key': 'standard', 'name': 'Standard', 'short': 'Std'}, 'speed': 'bullet', 'perf': {'name': 'Bullet'}, 'rated': False, 'createdAt': 1738131526833, 'white': {'id': 'yellowflash-x', 'name': 'YellowFlash-X', 'title': 'BOT', 'rating': 2820, 'provisional': True}, 'black': {'aiLevel': 1}, 'initialFen': 'startpos', 'clock': {'initial': 90000, 'increment': 0}, 'type': 'gameFull', 'state': {'type': 'gameState', 'moves': '', 'wtime': 90000, 'btime': 90000, 'winc': 0, 'binc': 0, 'status': 'started'}}
+2025-01-29 06:33:47,879 - DEBUG - Received data: {'type': 'gameState', 'moves': 'e2e4', 'wtime': 90000, 'btime': 90000, 'winc': 0, 'binc': 0, 'status': 'started'}
+2025-01-29 06:33:47,879 - ERROR - Error in main loop: 'isMyTurn'
+2025-01-29 06:33:57,881 - DEBUG - Starting new HTTPS connection (1): lichess.org:443
+2025-01-29 06:33:58,320 - DEBUG - https://lichess.org:443 "GET /api/account/playing HTTP/1.1" 200 None
+2025-01-29 06:33:58,321 - INFO - Ongoing games: {'nowPlaying': [{'fullId': 't1RSgBCTqWfJ', 'gameId': 't1RSgBCT', 'fen': 'rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2', 'color': 'white', 'lastMove': 'c7c5', 'source': 'ai', 'status': {'id': 20, 'name': 'started'}, 'variant': {'key': 'standard', 'name': 'Standard'}, 'speed': 'bullet', 'perf': 'bullet', 'rated': False, 'hasMoved': True, 'opponent': {'id': None, 'username': 'Stockfish level 1', 'ai': 1}, 'isMyTurn': True, 'secondsLeft': 82}]}
+2025-01-29 06:33:58,321 - INFO - Starting game t1RSgBCT against Stockfish level 1
+2025-01-29 06:33:58,322 - DEBUG - Starting new HTTPS connection (1): lichess.org:443
+2025-01-29 06:33:58,748 - DEBUG - https://lichess.org:443 "GET /api/bot/game/stream/t1RSgBCT HTTP/1.1" 200 None
+2025-01-29 06:33:58,748 - DEBUG - Received data: {'id': 't1RSgBCT', 'variant': {'key': 'standard', 'name': 'Standard', 'short': 'Std'}, 'speed': 'bullet', 'perf': {'name': 'Bullet'}, 'rated': False, 'createdAt': 1738131526833, 'white': {'id': 'yellowflash-x', 'name': 'YellowFlash-X', 'title': 'BOT', 'rating': 2820, 'provisional': True}, 'black': {'aiLevel': 1}, 'initialFen': 'startpos', 'clock': {'initial': 90000, 'increment': 0}, 'type': 'gameFull', 'state': {'type': 'gameState', 'moves': 'e2e4 c7c5', 'wtime': 81150, 'btime': 90000, 'winc': 0, 'binc': 0, 'status': 'started'}}
