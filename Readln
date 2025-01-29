@@ -1,14 +1,20 @@
-**Key steps:**
-1. Get a bot token: https://lichess.org/login?referrer=/account/oauth/token/create (check "bot:play" scope)
-2. `pip install websockets requests`
-3. Replace `API_TOKEN` with your token
-4. Run: `python bot.py`
+Key UI features added :
+1. Interactive command prompt with tab completion
+2. Matchmaking control system
+3. Challenge creation interface
+4. Rechallenge functionality
+5. Help system with command descriptions
 
-This will:
-- Verify token permissions
-- Accept all challenges automatically
-- Play using Lichess's cloud analysis
-- Work with any valid bot token
-- Follow Lichess rate limits
+Run with:
+```bash
+python bot.py --matchmaking  # Start with auto-matchmaking
+```
 
-**Note:** Actual bot accounts get special rate limits. Using normal accounts as bots violates Lichess ToS.
+Use commands like:
+- `challenge StockfishBot 5+0 white rated`
+- `matchmaking`
+- `rechallenge`
+- `stop`
+- `quit`
+
+The interface supports both interactive use and automated matchmaking through command-line flags .
