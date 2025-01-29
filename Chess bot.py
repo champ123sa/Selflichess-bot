@@ -34,9 +34,14 @@ def get_best_move(fen):
         params={'fen': fen}
     )
     if response.status_code == 200:
-        best_move = response.json().get('pvs', [{}])[0].get('moves', '').split()[0] if response.json().get('pvs') else None
-        logging.debug(f"Best move received: {best_move}")
-        return best_move
+        analysis = response.json()
+        if 'pvs' in analysis and len(analysis['pvs']) > 0:
+            best_move = analysis['pvs'][0]['moves'].split()[0]
+            logging.debug(f"Best move received: {best_move}")
+            return best_move
+        else:
+            logging.error("No PVs found in analysis response")
+            return None
     else:
         logging.error("Error fetching best move: %s %s", response.status_code, response.text)
         return None
@@ -103,23 +108,26 @@ def play_game(game_id, opponent):
                     fen = board.fen()
                     best_move = get_best_move(fen)
                     if best_move:
-                        move_url = f"{LICHESS_API_URL}/bot/game/{game_id}/move/{best_move}"
-                        response = requests.post(move_url, headers=get_headers())
-                        if response.status_code == 200:
-                            board.push_uci(best_move)
-                            
-                            # Store game state in memory
-                            if opponent not in game_memory:
-                                game_memory[opponent] = []
-                            game_memory[opponent].append({
-                                'fen': fen,
-                                'move': best_move,
-                                'timestamp': datetime.now().isoformat()
-                            })
-                            with open(MEMORY_FILE, 'w') as f:
-                                json.dump(game_memory, f)
+                        if chess.Move.from_uci(best_move) in board.legal_moves:
+                            move_url = f"{LICHESS_API_URL}/bot/game/{game_id}/move/{best_move}"
+                            response = requests.post(move_url, headers=get_headers())
+                            if response.status_code == 200:
+                                board.push_uci(best_move)
+                                
+                                # Store game state in memory
+                                if opponent not in game_memory:
+                                    game_memory[opponent] = []
+                                game_memory[opponent].append({
+                                    'fen': fen,
+                                    'move': best_move,
+                                    'timestamp': datetime.now().isoformat()
+                                })
+                                with open(MEMORY_FILE, 'w') as f:
+                                    json.dump(game_memory, f)
+                            else:
+                                logging.error("Error making move: %s %s", response.status_code, response.text)
                         else:
-                            logging.error("Error making move: %s %s", response.status_code, response.text)
+                            logging.error("Illegal move: %s", best_move)
                     else:
                         logging.error("No best move found for FEN: %s", fen)
     except Exception as e:
