@@ -45,41 +45,61 @@ def play_game(game_id, opponent):
     logging.info(f"Starting game {game_id} against {opponent}")
     url = f"{LICHESS_API_URL}/bot/game/stream/{game_id}"
     stream = requests.get(url, headers=get_headers(), stream=True)
-    board = chess.Board()
     
-    for line in stream.iter_lines():
-        if line:
-            try:
-                data = json.loads(line.decode('utf-8'))
-            except json.JSONDecodeError:
-                logging.error("Failed to decode JSON from line: %s", line)
-                continue
-            
-            logging.debug(f"Received data: {data}")
-            
-            if data.get('type') == 'gameFull':
-                moves = data['state']['moves'].split() if 'moves' in data['state'] else []
-                for move in moves:
-                    try:
-                        board.push_uci(move) if move else None
-                    except ValueError:
-                        try:
-                            board.push_san(move)
-                        except ValueError:
-                            logging.error(f"Invalid move {move} ignored")
-            
-            elif data.get('type') == 'gameState':
-                moves = data['moves'].split() if 'moves' in data else []
-                for move in moves:
-                    try:
-                        board.push_uci(move) if move else None
-                    except ValueError:
-                        try:
-                            board.push_san(move)
-                        except ValueError:
-                            logging.error(f"Invalid move {move} ignored")
+    board = chess.Board()
+    last_processed_move = ""
+    
+    try:
+        for line in stream.iter_lines(decode_unicode=True):
+            if line:
+                try:
+                    data = json.loads(line)
+                except json.JSONDecodeError:
+                    logging.error("Failed to decode JSON from line: %s", line)
+                    continue
                 
-                if data.get('isMyTurn'):
+                logging.debug(f"Received data: {data}")
+                
+                if data.get('type') == 'gameFull':
+                    moves = data['state']['moves'].split() if 'moves' in data['state'] else []
+                    for move in moves:
+                        try:
+                            board.push_uci(move) if move else None
+                        except ValueError:
+                            try:
+                                board.push_san(move)
+                            except ValueError:
+                                logging.error(f"Invalid move {move} ignored")
+                    
+                    # Ensure we don't process the same move twice
+                    if moves:
+                        last_processed_move = moves[-1]
+                
+                elif data.get('type') == 'gameState':
+                    moves = data['moves'].split() if 'moves' in data else []
+                    new_moves = moves[len(board.move_stack):]
+                    for move in new_moves:
+                        try:
+                            board.push_uci(move) if move else None
+                        except ValueError:
+                            try:
+                                board.push_san(move)
+                            except ValueError:
+                                logging.error(f"Invalid move {move} ignored")
+                    
+                    # Ensure we don't process the same move twice
+                    if new_moves:
+                        last_processed_move = new_moves[-1]
+                
+                elif data.get('type') == 'chatLine':
+                    logging.info(f"Chat message: {data}")
+                    continue
+                
+                elif data.get('type') == 'gameEnd':
+                    logging.info(f"Game ended: {data}")
+                    break
+                
+                if data.get('isMyTurn') and board.turn == (board.fen().split()[1] == 'w'):
                     fen = board.fen()
                     best_move = get_best_move(fen)
                     if best_move:
@@ -102,6 +122,8 @@ def play_game(game_id, opponent):
                             logging.error("Error making move: %s %s", response.status_code, response.text)
                     else:
                         logging.error("No best move found for FEN: %s", fen)
+    except Exception as e:
+        logging.error("Error in play_game loop: %s", e)
 
 def challenge_opponent(username, clock_limit, increment):
     url = f"{LICHESS_API_URL}/challenge/{username}"
