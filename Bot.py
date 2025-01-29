@@ -7,7 +7,7 @@ import json
 import sys
 from enum import Enum
 
-API_TOKEN = "your_token_here"
+API_TOKEN = "lip_RCclZGMsZMhtLWPi4JCZ"
 COMMANDS = {
     'challenge': 'Challenge a player: challenge USERNAME [TIME] [COLOR] [RATED]',
     'matchmaking': 'Start automated matchmaking',
